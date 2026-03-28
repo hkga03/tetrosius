@@ -302,14 +302,54 @@ pushLogs([{ message: t("initLog"), tone: "info" }]);
 render();
 requestAnimationFrame(loop);
 
+function bindPress(element, handler) {
+  if (!element) {
+    return;
+  }
+
+  let lastPressAt = 0;
+  const trigger = (event) => {
+    const now = Date.now();
+    if (now - lastPressAt < 320) {
+      return;
+    }
+    lastPressAt = now;
+    handler(event);
+  };
+
+  element.addEventListener(
+    "touchend",
+    (event) => {
+      event.preventDefault();
+      trigger(event);
+    },
+    { passive: false }
+  );
+
+  element.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    if ("button" in event && event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    trigger(event);
+  });
+
+  element.addEventListener("click", (event) => {
+    trigger(event);
+  });
+}
+
 function bindEvents() {
-  refs.getGemButton?.addEventListener("click", () => {
+  bindPress(refs.getGemButton, () => {
     if (isInteractionLocked()) {
       return;
     }
     handleEvents(awardGem(state));
   });
-  refs.drawButton?.addEventListener("click", () => {
+  bindPress(refs.drawButton, () => {
     if (isInteractionLocked()) {
       return;
     }
@@ -317,7 +357,7 @@ function bindEvents() {
     ui.focusActive = state.phase === "placing";
     handleEvents(events);
   });
-  refs.rotateButton?.addEventListener("click", () => {
+  bindPress(refs.rotateButton, () => {
     if (isInteractionLocked()) {
       return;
     }
@@ -326,23 +366,23 @@ function bindEvents() {
       render();
     }
   });
-  refs.placeButton?.addEventListener("click", () => {
+  bindPress(refs.placeButton, () => {
     if (isInteractionLocked()) {
       return;
     }
     handleEvents(placeActivePiece(state));
   });
-  refs.moveLeftButton?.addEventListener("click", () => moveAndRender(-1, 0));
-  refs.moveRightButton?.addEventListener("click", () => moveAndRender(1, 0));
-  refs.moveUpButton?.addEventListener("click", () => moveAndRender(0, 1));
-  refs.moveDownButton?.addEventListener("click", () => moveAndRender(0, -1));
-  refs.settingsToggle?.addEventListener("click", () => setSettingsOpen(true));
-  refs.closeSettingsButton?.addEventListener("click", () => setSettingsOpen(false));
-  refs.scrim?.addEventListener("click", () => setSettingsOpen(false));
-  refs.languageJaButton?.addEventListener("click", () => setLanguage("ja"));
-  refs.languageEnButton?.addEventListener("click", () => setLanguage("en"));
-  refs.jumpBottomButton?.addEventListener("click", snapBoardToBottom);
-  refs.resetButton?.addEventListener("click", resetGame);
+  bindPress(refs.moveLeftButton, () => moveAndRender(-1, 0));
+  bindPress(refs.moveRightButton, () => moveAndRender(1, 0));
+  bindPress(refs.moveUpButton, () => moveAndRender(0, 1));
+  bindPress(refs.moveDownButton, () => moveAndRender(0, -1));
+  bindPress(refs.settingsToggle, () => setSettingsOpen(true));
+  bindPress(refs.closeSettingsButton, () => setSettingsOpen(false));
+  bindPress(refs.scrim, () => setSettingsOpen(false));
+  bindPress(refs.languageJaButton, () => setLanguage("ja"));
+  bindPress(refs.languageEnButton, () => setLanguage("en"));
+  bindPress(refs.jumpBottomButton, snapBoardToBottom);
+  bindPress(refs.resetButton, resetGame);
   refs.timerSetting?.addEventListener("input", handleSettingsChange);
   refs.initialGapSetting?.addEventListener("input", handleSettingsChange);
   refs.drawModeSetting?.addEventListener("change", handleSettingsChange);

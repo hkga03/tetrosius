@@ -36,6 +36,12 @@ input {
   font: inherit;
 }
 
+button,
+.board-cell {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .app-shell {
   min-height: 100dvh;
   padding: 24px;
@@ -486,6 +492,8 @@ h2 {
   gap: 12px;
   margin-top: 14px;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .board-meta-status {
@@ -1023,6 +1031,12 @@ h2 {
     grid-template-columns: 1fr;
   }
 
+  .board-column {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
   .board-stage__topbar {
     flex-direction: column;
     align-items: stretch;
@@ -1049,11 +1063,23 @@ h2 {
   }
 
   :root {
-    --cell-size: min(8.6vw, 30px);
+    --cell-size: min(8vw, 28px);
     --tap-size: 62px;
   }
 
   .board-viewport {
-    height: calc(var(--cell-size) * 25 + 20px);
+    height: min(58dvh, calc(var(--cell-size) * 18 + 20px));
+  }
+
+  .board-actions {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    padding: 10px 0 4px;
+    background: linear-gradient(180deg, rgba(6, 16, 30, 0), rgba(6, 16, 30, 0.92) 24%);
+  }
+
+  .board-meta-status,
+  .board-footer {
+    margin-bottom: 6px;
   }
 }
