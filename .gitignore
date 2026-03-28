@@ -1,0 +1,9 @@
+node_modules/
+
+docs/
+Specification_draft.md
+
+.DS_Store
+Thumbs.db
+
+.git-alt/

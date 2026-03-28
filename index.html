@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tetrosius</title>
+    <meta
+      name="description"
+      content="Tetrosius is a browser-based puzzle prototype where you draw parts, place them carefully, and clear the original bottom row."
+    />
+    <meta name="theme-color" content="#071525" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Tetrosius" />
+    <meta
+      property="og:description"
+      content="A browser-based puzzle prototype with draw-based parts, wildcard choices, and a tall mobile-friendly board."
+    />
+    <meta property="og:site_name" content="Tetrosius" />
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <main class="game-layout">
+        <aside class="panel panel--meta">
+          <section class="card card--objective">
+            <p id="objective-label" class="card-label">目標</p>
+            <h2 id="objective-title">最初の最下段を消そう</h2>
+            <p id="objective-copy" class="muted-text">金色のブロックが最初の最下段です。</p>
+            <div class="goal-meter">
+              <div id="goal-meter-fill" class="goal-meter__fill"></div>
+            </div>
+          </section>
+
+          <section class="card card--events">
+            <div class="split">
+              <p id="event-log-label" class="card-label">イベントログ</p>
+              <span id="board-height" class="tiny-chip">25段</span>
+            </div>
+            <ul id="event-log" class="event-log"></ul>
+          </section>
+        </aside>
+
+        <section class="board-stage">
+          <header class="board-stage__topbar">
+            <div>
+              <p id="eyebrow-label" class="eyebrow">パーティーパズル試作</p>
+              <h1>Tetrosius</h1>
+            </div>
+            <div class="topbar-actions">
+              <div class="language-toggle" role="group" aria-label="Language toggle">
+                <button id="language-ja-button" class="button button--ghost language-toggle__button" type="button">日本語</button>
+                <button id="language-en-button" class="button button--ghost language-toggle__button" type="button">English</button>
+              </div>
+              <button id="settings-toggle" class="button button--ghost" type="button">設定</button>
+              <button id="reset-button" class="button button--ghost" type="button">リセット</button>
+            </div>
+          </header>
+
+          <section class="card card--status card--status-inline">
+            <div class="split">
+              <p id="run-status-label" class="card-label">プレイ状況</p>
+              <span id="stage-title" class="stage-title hidden">準備完了</span>
+            </div>
+            <div class="stat-grid stat-grid--compact">
+              <article class="stat-pill stat-pill--gem">
+                <span id="gems-label">ジェム</span>
+                <strong id="gem-count">0</strong>
+              </article>
+              <article class="stat-pill">
+                <span id="score-label">スコア</span>
+                <strong id="score-count">0</strong>
+              </article>
+              <article class="stat-pill">
+                <span id="turn-label">ターン</span>
+                <strong id="turn-count">0</strong>
+              </article>
+              <article id="target-stat-pill" class="stat-pill hidden">
+                <span id="target-label">対象</span>
+                <strong id="target-count">0 / 0</strong>
+              </article>
+            </div>
+          </section>
+
+          <div class="stage-main">
+            <div class="board-column">
+              <div class="board-shell">
+                <div id="board-viewport" class="board-viewport">
+                  <div id="board-inner" class="board-inner" aria-live="polite"></div>
+                </div>
+              </div>
+
+              <div class="board-actions">
+                <button id="get-gem-button" class="button button--primary action-button" type="button">ジェム獲得</button>
+                <button id="draw-button" class="button button--accent action-button" type="button">パーツを引く</button>
+              </div>
+              <p id="meta-status" class="muted-text board-meta-status">ジェムを集めて、ガチャでパーツを引きましょう。</p>
+
+              <div class="board-footer">
+                <p id="placement-hint" class="muted-text">
+                  到達可能な置き場所は水色、ふさがれている場所は赤で表示されます。
+                </p>
+              </div>
+            </div>
+
+            <aside class="stage-controls">
+              <section class="card card--piece">
+                <div class="split">
+                  <p id="current-draw-label" class="card-label">現在の結果</p>
+                  <div class="draw-status">
+                    <div class="timer-widget timer-widget--inline">
+                      <span id="timer-label">タイマー</span>
+                      <strong id="timer-readout">5.0s</strong>
+                    </div>
+                    <span id="phase-chip" class="tiny-chip">待機</span>
+                  </div>
+                </div>
+                <div id="draw-result-card" class="draw-card"></div>
+                <div id="wildcard-picker" class="wildcard-picker hidden"></div>
+              </section>
+
+              <section class="card card--turn">
+                <p id="turn-controls-label" class="card-label">操作</p>
+                <div class="timer-bar">
+                  <div id="timer-bar-fill" class="timer-bar__fill"></div>
+                </div>
+                <div class="turn-actions">
+                  <button id="rotate-button" class="button button--primary icon-button" type="button" aria-label="回転" title="回転">&#8635;</button>
+                  <button id="place-button" class="button button--accent icon-button" type="button" aria-label="配置" title="配置">&#9635;</button>
+                </div>
+                <div id="dpad" class="dpad">
+                  <button id="move-up-button" class="button button--ghost dpad-button dpad-button--up" type="button">&uarr;</button>
+                  <div class="dpad__middle">
+                    <button id="move-left-button" class="button button--ghost dpad-button dpad-button--left" type="button">&larr;</button>
+                    <button id="move-right-button" class="button button--ghost dpad-button dpad-button--right" type="button">&rarr;</button>
+                  </div>
+                  <button id="move-down-button" class="button button--ghost dpad-button dpad-button--down" type="button">&darr;</button>
+                </div>
+                <p id="controls-hint" class="muted-text">
+                  盤面で位置を確認してから固定。時間切れでも真下に落ちて固定されます。
+                </p>
+              </section>
+
+              <section class="card card--help">
+                <p id="notes-label" class="card-label">メモ</p>
+                <ul class="help-list">
+                  <li id="note-joker">Jokerはジェムを消費し、そのターンは無駄になります。</li>
+                  <li id="note-wildcard">Wildcardは好きなパーツを選んでからタイマーが始まります。</li>
+                  <li id="note-timeout">時間切れになると、操作中のパーツは真下に落ちて固定されます。</li>
+                </ul>
+              </section>
+            </aside>
+          </div>
+        </section>
+      </main>
+
+      <div id="scrim" class="scrim hidden"></div>
+      <section id="settings-panel" class="settings-panel hidden" aria-label="設定パネル">
+        <div class="split">
+          <div>
+            <p id="game-settings-label" class="card-label">ゲーム設定</p>
+            <h2 id="game-settings-title">ラウンド設定</h2>
+          </div>
+          <button id="close-settings-button" class="button button--ghost" type="button">閉じる</button>
+        </div>
+
+        <label class="settings-field">
+          <span id="turn-time-label">制限時間（秒）</span>
+          <input id="timer-setting" type="range" min="3" max="10" step="1" />
+          <strong id="timer-setting-value">5</strong>
+        </label>
+
+        <label class="settings-field">
+          <span id="initial-gap-label">初期盤面の欠け（%）</span>
+          <input id="initial-gap-setting" type="range" min="0" max="45" step="1" />
+          <strong id="initial-gap-setting-value">18%</strong>
+        </label>
+
+        <label class="settings-field">
+          <span id="draw-mode-label">ゲームモード</span>
+          <select id="draw-mode-setting">
+            <option id="draw-mode-classic-option" value="classic">標準（7パーツ + Wild + Joker）</option>
+            <option id="draw-mode-wild-option" value="wild-seven">Wild多め（7パーツ + Wild x7）</option>
+          </select>
+        </label>
+
+        <label id="wild-count-field" class="settings-field">
+          <span id="wild-count-label">Wild枚数</span>
+          <input id="wild-count-setting" type="range" min="0" max="14" step="1" />
+          <strong id="wild-count-setting-value">7</strong>
+        </label>
+
+        <label class="settings-field settings-field--inline">
+          <span id="show-dpad-label">方向ボタンを表示</span>
+          <input id="show-dpad-setting" type="checkbox" />
+        </label>
+
+        <div class="settings-score-grid">
+          <label class="settings-field">
+            <span id="score-1-label">1ライン</span>
+            <input id="score-1-setting" type="number" min="0" step="10" />
+          </label>
+          <label class="settings-field">
+            <span id="score-2-label">2ライン</span>
+            <input id="score-2-setting" type="number" min="0" step="10" />
+          </label>
+          <label class="settings-field">
+            <span id="score-3-label">3ライン</span>
+            <input id="score-3-setting" type="number" min="0" step="10" />
+          </label>
+          <label class="settings-field">
+            <span id="score-4-label">4ライン</span>
+            <input id="score-4-setting" type="number" min="0" step="10" />
+          </label>
+        </div>
+      </section>
+
+      <div id="fx-layer" class="fx-layer" aria-hidden="true"></div>
+      <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
