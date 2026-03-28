@@ -23,6 +23,7 @@
 body {
   margin: 0;
   min-height: 100dvh;
+  overflow-x: hidden;
   color: var(--text);
   font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
   background:
@@ -364,6 +365,8 @@ h2 {
 
 .board-shell {
   position: relative;
+  width: 100%;
+  min-width: 0;
   border-radius: 30px;
   padding: 14px;
   background:
@@ -374,13 +377,26 @@ h2 {
 
 .board-viewport {
   height: calc(var(--cell-size) * 25 + 28px);
+  width: 100%;
   overflow: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(4, 13, 26, 0.96), rgba(8, 20, 38, 0.96)),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
   padding: 4px;
   scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+}
+
+.board-viewport.is-placing,
+.board-viewport.is-placing .board-inner,
+.board-viewport.is-placing .board-cell {
+  touch-action: none;
+}
+
+.board-viewport.is-dragging {
+  overflow: hidden;
 }
 
 .board-inner {
@@ -1029,11 +1045,18 @@ h2 {
 
   .stage-main {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .board-column {
     display: flex;
     flex-direction: column;
+    gap: 10px;
+    order: 1;
+  }
+
+  .stage-controls {
+    order: 2;
     gap: 10px;
   }
 
@@ -1063,12 +1086,41 @@ h2 {
   }
 
   :root {
-    --cell-size: min(8vw, 28px);
+    --cell-size: min(7.2vw, 24px);
     --tap-size: 62px;
   }
 
+  .board-stage {
+    padding: 14px;
+  }
+
+  .board-shell {
+    padding: 10px;
+  }
+
+  .card--piece {
+    order: 2;
+  }
+
+  .card--turn {
+    order: 1;
+  }
+
+  .card--help {
+    display: none;
+  }
+
+  .draw-card {
+    min-height: 112px;
+    margin-top: 10px;
+  }
+
   .board-viewport {
-    height: min(58dvh, calc(var(--cell-size) * 18 + 20px));
+    height: min(46dvh, calc(var(--cell-size) * 14 + 16px));
+  }
+
+  .board-row {
+    justify-content: center;
   }
 
   .board-actions {
@@ -1076,6 +1128,17 @@ h2 {
     bottom: calc(8px + env(safe-area-inset-bottom));
     padding: 10px 0 4px;
     background: linear-gradient(180deg, rgba(6, 16, 30, 0), rgba(6, 16, 30, 0.92) 24%);
+  }
+
+  .toast-stack {
+    left: 12px;
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .toast {
+    min-width: 0;
+    max-width: none;
   }
 
   .board-meta-status,

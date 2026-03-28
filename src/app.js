@@ -262,6 +262,7 @@ const refs = {
 const ui = {
   clearAnimation: null,
   dragging: false,
+  draggingPointerId: null,
   focusActive: false,
   initialBottomSnap: true,
   lastFrame: performance.now(),
@@ -439,11 +440,18 @@ function onBoardPointerDown(event) {
   if (isInteractionLocked() || state.phase !== "placing" || !state.activePiece) {
     return;
   }
+  if (!(event.target instanceof Element)) {
+    return;
+  }
   const cell = event.target.closest(".board-cell");
   if (!cell) {
     return;
   }
+  event.preventDefault();
   ui.dragging = true;
+  ui.draggingPointerId = event.pointerId;
+  refs.boardInner?.setPointerCapture?.(event.pointerId);
+  refs.boardViewport?.classList.add("is-dragging");
   updatePieceFromCell(cell);
 }
 
@@ -451,18 +459,31 @@ function onBoardPointerMove(event) {
   if (isInteractionLocked() || !ui.dragging || state.phase !== "placing" || !state.activePiece) {
     return;
   }
+  if (ui.draggingPointerId !== null && event.pointerId !== ui.draggingPointerId) {
+    return;
+  }
+  if (!(event.target instanceof Element)) {
+    return;
+  }
   const cell = event.target.closest(".board-cell");
   if (!cell) {
     return;
   }
+  event.preventDefault();
   updatePieceFromCell(cell);
 }
 
-function onBoardPointerUp() {
+function onBoardPointerUp(event) {
   if (!ui.dragging) {
     return;
   }
+  if (ui.draggingPointerId !== null && event.pointerId !== ui.draggingPointerId) {
+    return;
+  }
+  refs.boardInner?.releasePointerCapture?.(ui.draggingPointerId);
   ui.dragging = false;
+  ui.draggingPointerId = null;
+  refs.boardViewport?.classList.remove("is-dragging");
   render();
 }
 
@@ -837,6 +858,7 @@ function render() {
     state.phase === "placing"
       ? `${Math.max(0, Math.min(100, (state.timerMs / (state.settings.turnSeconds * 1000)) * 100))}%`
       : "0%";
+  refs.boardViewport?.classList.toggle("is-placing", state.phase === "placing" && !isInteractionLocked());
   if (refs.metaStatus) {
     refs.metaStatus.textContent = getMetaStatus();
   }
