@@ -1041,23 +1041,23 @@ h2 {
 
   .card--status-inline .stat-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 6px;
   }
 
   .card--status-inline .stat-pill {
     min-width: 0;
-    padding: 8px 10px;
-    gap: 2px;
+    padding: 7px 8px;
+    gap: 1px;
   }
 
   .card--status-inline .stat-pill span {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
   }
 
   .card--status-inline .stat-pill strong {
-    font-size: 1rem;
+    font-size: 0.96rem;
   }
 
   .settings-score-grid,
@@ -1067,26 +1067,35 @@ h2 {
   }
 
   .stage-main {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr);
+    grid-template-areas:
+      "board board"
+      "controls piece"
+      "controls actions";
     gap: 10px;
+    align-items: start;
   }
 
-  .board-column {
+  .board-column,
+  .stage-controls {
     display: contents;
   }
 
-  .stage-controls {
-    order: 2;
-    gap: 10px;
+  .board-shell {
+    grid-area: board;
   }
 
-  .board-shell {
-    order: 1;
+  .card--turn {
+    grid-area: controls;
+  }
+
+  .card--piece {
+    grid-area: piece;
   }
 
   .board-actions {
-    order: 3;
+    grid-area: actions;
   }
 
   .board-meta-status {
@@ -1146,12 +1155,8 @@ h2 {
     padding: 8px;
   }
 
+  .card--turn,
   .card--piece {
-    order: 2;
-  }
-
-  .card--turn {
-    order: 1;
     padding: 12px;
   }
 
@@ -1160,7 +1165,7 @@ h2 {
   }
 
   .draw-card {
-    min-height: 96px;
+    min-height: 112px;
     margin-top: 8px;
   }
 
@@ -1200,6 +1205,9 @@ h2 {
 
   .board-actions {
     position: static;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
     padding: 0;
     background: none;
   }
