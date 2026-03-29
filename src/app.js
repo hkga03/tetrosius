@@ -343,6 +343,53 @@ function bindPress(element, handler) {
   });
 }
 
+function bindDelegatedPress(element, selector, handler) {
+  if (!element) {
+    return;
+  }
+
+  let lastPressAt = 0;
+  const tryTrigger = (event) => {
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    const target = event.target.closest(selector);
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const now = Date.now();
+    if (now - lastPressAt < 320) {
+      return;
+    }
+    lastPressAt = now;
+    handler(event, target);
+  };
+
+  element.addEventListener(
+    "touchend",
+    (event) => {
+      event.preventDefault();
+      tryTrigger(event);
+    },
+    { passive: false }
+  );
+
+  element.addEventListener("pointerup", (event) => {
+    if (event.pointerType === "touch") {
+      return;
+    }
+    if ("button" in event && event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    tryTrigger(event);
+  });
+
+  element.addEventListener("click", (event) => {
+    tryTrigger(event);
+  });
+}
+
 function bindEvents() {
   bindPress(refs.getGemButton, () => {
     if (isInteractionLocked()) {
@@ -393,7 +440,7 @@ function bindEvents() {
   refs.score2Setting?.addEventListener("change", handleSettingsChange);
   refs.score3Setting?.addEventListener("change", handleSettingsChange);
   refs.score4Setting?.addEventListener("change", handleSettingsChange);
-  refs.wildcardPicker?.addEventListener("click", onWildcardPickerClick);
+  bindDelegatedPress(refs.wildcardPicker, "[data-piece]", onWildcardPickerPress);
   refs.boardInner?.addEventListener("pointerdown", onBoardPointerDown);
   refs.boardInner?.addEventListener("pointermove", onBoardPointerMove);
   window.addEventListener("pointerup", onBoardPointerUp);
@@ -557,13 +604,9 @@ function resetGame() {
   render();
 }
 
-function onWildcardPickerClick(event) {
-  if (!(event.target instanceof Element)) {
-    return;
-  }
-  const button = event.target.closest("[data-piece]");
-  if (!(button instanceof HTMLElement)) {
-    return;
+function onWildcardPickerPress(event, button) {
+  if (event && "preventDefault" in event) {
+    event.preventDefault();
   }
   const piece = button.dataset.piece;
   const events = chooseWildcard(state, piece);
