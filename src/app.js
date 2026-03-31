@@ -260,15 +260,24 @@ const refs = {
 };
 
 const ui = {
+  boardKey: "",
   clearAnimation: null,
+  drawCardKey: "",
   dragging: false,
   draggingPointerId: null,
   focusActive: false,
+  gridKey: "",
   initialBottomSnap: true,
   lastFrame: performance.now(),
+  lastRenderAt: 0,
   logs: [],
+  logsDirty: true,
+  previousClearAnimating: false,
+  previousEffectsActive: false,
   settingsOpen: false,
+  staticKey: "",
   toasts: [],
+  toastsDirty: true,
   effects: {
     gemUntil: 0,
     drawUntil: 0,
@@ -293,6 +302,13 @@ function t(key, values = {}) {
 
 function shouldShowTargetStatus() {
   return false;
+}
+
+function invalidateBoard(gridChanged = false) {
+  ui.boardKey = "";
+  if (gridChanged) {
+    ui.gridKey = "";
+  }
 }
 
 let state = createGame(Math.random, loadSettings());
@@ -453,6 +469,7 @@ function moveAndRender(dx, dy) {
   }
   if (moveActivePiece(state, dx, dy)) {
     ui.focusActive = true;
+    invalidateBoard();
     render();
   }
 }
@@ -541,6 +558,7 @@ function updatePieceFromCell(cell) {
   const anchorX = hoverX - Math.floor(bounds.width / 2);
   const anchorY = hoverY - Math.floor(bounds.height / 2);
   setActivePosition(state, anchorX, anchorY);
+  invalidateBoard(true);
   render();
 }
 
@@ -581,6 +599,8 @@ function onKeyDown(event) {
 function rotateAndRender() {
   if (rotateActivePiece(state)) {
     ui.focusActive = true;
+    invalidateBoard();
+    ui.drawCardKey = "";
     render();
   }
 }
@@ -595,9 +615,13 @@ function resetGame() {
     return;
   }
   state = createGame(Math.random, state.settings);
+  invalidateBoard(true);
   ui.clearAnimation = null;
+  ui.drawCardKey = "";
   ui.logs = [];
+  ui.logsDirty = true;
   ui.toasts = [];
+  ui.toastsDirty = true;
   ui.focusActive = false;
   ui.initialBottomSnap = true;
   pushLogs([{ message: t("resetLog"), tone: "info" }]);
@@ -624,6 +648,8 @@ function setSettingsOpen(open) {
 function loop(now) {
   const delta = now - ui.lastFrame;
   ui.lastFrame = now;
+  const previousTimerMs = state.timerMs;
+  const wasClearAnimating = Boolean(ui.clearAnimation);
 
   if (!ui.settingsOpen) {
     const events = tickTimer(state, delta);
@@ -631,14 +657,57 @@ function loop(now) {
       handleEvents(events);
     } else {
       updateAnimation(now);
-      render();
+      const effectsActive = hasActiveEffects(now);
+      const timerTickChanged =
+        state.phase === "placing" && Math.floor(previousTimerMs / 100) !== Math.floor(state.timerMs / 100);
+      const clearStateChanged = wasClearAnimating !== Boolean(ui.clearAnimation);
+      const toastExpired = hasExpiredToast(now);
+      const renderIntervalMs = Boolean(ui.clearAnimation) || wasClearAnimating ? 34 : timerTickChanged ? 80 : 120;
+      const throttledFrameReady = now - ui.lastRenderAt >= renderIntervalMs;
+      const shouldRenderFrame =
+        clearStateChanged ||
+        ui.previousEffectsActive !== effectsActive ||
+        toastExpired ||
+        (throttledFrameReady &&
+          (timerTickChanged || wasClearAnimating || Boolean(ui.clearAnimation) || effectsActive || ui.toasts.length > 0));
+
+      ui.previousEffectsActive = effectsActive;
+      ui.previousClearAnimating = Boolean(ui.clearAnimation);
+
+      if (shouldRenderFrame) {
+        render();
+      }
     }
   } else {
     updateAnimation(now);
-    render();
+    const effectsActive = hasActiveEffects(now);
+    const clearStateChanged = wasClearAnimating !== Boolean(ui.clearAnimation);
+    const toastExpired = hasExpiredToast(now);
+    const renderIntervalMs = Boolean(ui.clearAnimation) || wasClearAnimating ? 34 : 120;
+    const throttledFrameReady = now - ui.lastRenderAt >= renderIntervalMs;
+    const shouldRenderFrame =
+      clearStateChanged ||
+      ui.previousEffectsActive !== effectsActive ||
+      toastExpired ||
+      (throttledFrameReady && (Boolean(ui.clearAnimation) || effectsActive || ui.toasts.length > 0));
+
+    ui.previousEffectsActive = effectsActive;
+    ui.previousClearAnimating = Boolean(ui.clearAnimation);
+
+    if (shouldRenderFrame) {
+      render();
+    }
   }
 
   requestAnimationFrame(loop);
+}
+
+function hasActiveEffects(now) {
+  return Object.values(ui.effects).some((until) => until > now);
+}
+
+function hasExpiredToast(now) {
+  return ui.toasts.some((toast) => toast.expiresAt <= now);
 }
 
 function handleEvents(events, options = {}) {
@@ -647,6 +716,8 @@ function handleEvents(events, options = {}) {
     return;
   }
 
+  invalidateBoard();
+  ui.drawCardKey = "";
   pushLogs(events);
   triggerEffects(events);
   maybeStartClearAnimation();
@@ -722,6 +793,8 @@ function pushLogs(events) {
     });
   }
   ui.logs = ui.logs.slice(0, 8);
+  ui.logsDirty = true;
+  ui.toastsDirty = true;
 }
 
 function triggerEffects(events) {
@@ -871,7 +944,13 @@ function applyStaticTranslations() {
 
 function render() {
   const now = performance.now();
-  applyStaticTranslations();
+  ui.lastRenderAt = now;
+  const staticKey = `${currentLanguage()}|${state.settings.drawMode}|${state.settings.wildDrawCount}`;
+  if (ui.staticKey !== staticKey) {
+    applyStaticTranslations();
+    ui.staticKey = staticKey;
+    ui.drawCardKey = "";
+  }
   refs.app.classList.toggle("effect-gem", ui.effects.gemUntil > now);
   refs.app.classList.toggle("effect-draw", ui.effects.drawUntil > now);
   refs.app.classList.toggle("effect-clear", ui.effects.clearUntil > now);
@@ -917,7 +996,6 @@ function render() {
   renderBoard();
   renderEventLog();
   renderToasts();
-  syncSettingsInputs();
 
   if (ui.initialBottomSnap) {
     snapBoardToBottom();
@@ -960,6 +1038,17 @@ function getPlacementHint() {
 
 function renderDrawCard() {
   const draw = state.lastDraw;
+  const drawKey = [
+    currentLanguage(),
+    draw || "none",
+    state.phase,
+    state.activePiece?.kind || "none",
+    state.activePiece?.rotation ?? -1,
+  ].join("|");
+  if (ui.drawCardKey === drawKey) {
+    return;
+  }
+
   let html = "";
 
   if (!draw) {
@@ -996,6 +1085,7 @@ function renderDrawCard() {
   }
 
   refs.drawResultCard.innerHTML = html;
+  ui.drawCardKey = drawKey;
 }
 
 function renderWildcardPicker() {
@@ -1060,6 +1150,39 @@ function renderMiniPiece(kind, rotation) {
 
 function renderBoard() {
   const animationFrame = getBoardAnimationFrame();
+  const gridKey = ui.gridKey || getGridSignature(state.grid);
+  ui.gridKey = gridKey;
+  const activePieceKey = state.activePiece
+    ? [
+        state.activePiece.kind,
+        state.activePiece.rotation,
+        state.activePiece.x,
+        state.activePiece.y,
+        state.activePiece.valid ? 1 : 0,
+        state.activePiece.reachable ? 1 : 0,
+      ].join(",")
+    : "none";
+  const animationKey = animationFrame
+    ? [
+        animationFrame.clearingRows.size,
+        Number(animationFrame.slideProgress.toFixed(3)),
+      ].join(",")
+    : "none";
+  const boardKey = [
+    state.phase,
+    state.turn,
+    state.score,
+    state.targetRemaining,
+    state.targetTotal,
+    state.grid.length,
+    gridKey,
+    activePieceKey,
+    animationKey,
+  ].join("|");
+  if (ui.boardKey === boardKey) {
+    return;
+  }
+
   const displayGrid = animationFrame?.grid || state.grid;
   const activeCells = new Map();
   if (!animationFrame && state.activePiece && state.phase === "placing") {
@@ -1131,6 +1254,22 @@ function renderBoard() {
     html += "</div>";
   }
   refs.boardInner.innerHTML = html;
+  ui.boardKey = boardKey;
+}
+
+function getGridSignature(grid) {
+  let signature = "";
+  for (const row of grid) {
+    for (const cell of row) {
+      if (!cell) {
+        signature += "0";
+        continue;
+      }
+      signature += `${cell.color}:${cell.accent}:${cell.isTarget ? 1 : 0}|`;
+    }
+    signature += "/";
+  }
+  return signature;
 }
 
 function getBoardAnimationFrame() {
@@ -1159,6 +1298,9 @@ function getBoardAnimationFrame() {
 }
 
 function renderEventLog() {
+  if (!ui.logsDirty) {
+    return;
+  }
   refs.eventLog.innerHTML = ui.logs
     .map(
       (entry) => `
@@ -1168,11 +1310,16 @@ function renderEventLog() {
       `
     )
     .join("");
+  ui.logsDirty = false;
 }
 
 function renderToasts() {
   const now = performance.now();
+  const beforeCount = ui.toasts.length;
   ui.toasts = ui.toasts.filter((toast) => toast.expiresAt > now);
+  if (!ui.toastsDirty && beforeCount === ui.toasts.length) {
+    return;
+  }
   refs.toastStack.innerHTML = ui.toasts
     .map(
       (toast) => `
@@ -1182,6 +1329,7 @@ function renderToasts() {
       `
     )
     .join("");
+  ui.toastsDirty = false;
 }
 
 function phaseLabel(phase) {

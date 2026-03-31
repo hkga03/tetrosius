@@ -971,6 +971,37 @@ h2 {
   }
 }
 
+@media (hover: none) and (pointer: coarse) {
+  .panel,
+  .board-stage,
+  .settings-panel,
+  .scrim {
+    backdrop-filter: none;
+  }
+
+  .panel,
+  .board-stage,
+  .settings-panel,
+  .toast {
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
+  }
+
+  .gem-burst {
+    filter: none;
+  }
+
+  .gem-burst__halo,
+  .gem-burst__spark,
+  .effect-gem .stat-pill--gem,
+  .effect-draw .draw-card,
+  .effect-clear .board-shell,
+  .effect-joker .draw-card,
+  .effect-timeout .timer-bar,
+  .effect-win .board-stage {
+    animation: none;
+  }
+}
+
 @media (max-width: 1120px) {
   .game-layout {
     grid-template-columns: 1fr;
@@ -1226,5 +1257,36 @@ h2 {
   .board-meta-status,
   .board-footer {
     margin-bottom: 6px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .panel,
+  .board-stage,
+  .settings-panel,
+  .scrim {
+    backdrop-filter: none;
+  }
+
+  .panel,
+  .board-stage,
+  .settings-panel,
+  .toast {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+  }
+
+  .gem-burst {
+    filter: none;
+  }
+
+  .gem-burst__halo,
+  .gem-burst__spark,
+  .effect-gem .stat-pill--gem,
+  .effect-draw .draw-card,
+  .effect-clear .board-shell,
+  .effect-joker .draw-card,
+  .effect-timeout .timer-bar,
+  .effect-win .board-stage {
+    animation: none;
   }
 }
